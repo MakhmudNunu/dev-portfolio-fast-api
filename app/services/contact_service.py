@@ -1,3 +1,4 @@
+from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 from app.api.schemas.contact import ContactCreate
 from app.repositories import contact_repository
@@ -9,10 +10,10 @@ class ContactService:
         self.email_service = EmailService()
         self.ai_service = AIService()
 
-    async def process_contact_form(self, db: Session, payload: ContactCreate):
+    async def process_contact_form(
+        self, db: Session, payload: ContactCreate, background_tasks: BackgroundTasks
+    ):
         ai_analytics = await self.ai_service.analyze_comment(payload.comment)
-        
-        message_data = payload
 
         new_message = contact_repository.create_contact_message_with_ai(
             db=db, 
@@ -21,12 +22,18 @@ class ContactService:
             reply=ai_analytics["reply"]
         )
         
-        await self.email_service.send_contact_emails(
+        background_tasks.add_task(
+            self.email_service.send_owner_email,
             name=payload.name,
             email=payload.email,
             phone=payload.phone,
             comment=f"{payload.comment}\n\n[AI Анализ тональности: {ai_analytics['sentiment']}]",
-            ai_reply=ai_analytics["reply"]
+        )
+        background_tasks.add_task(
+            self.email_service.send_user_email,
+            name=payload.name,
+            email=payload.email,
+            ai_reply=ai_analytics["reply"],
         )
         
         return new_message
