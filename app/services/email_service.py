@@ -64,17 +64,23 @@ class EmailService:
             current_year=datetime.now().year
         )
         
-        # 4. Отправляем потоками в пул задач
-        await run_in_threadpool(
-            self._send_sync_email,
-            settings.EMAIL_TO_OWNER,
-            "New Portfolio Contact Form Submission",
-            owner_html
-        )
-        
-        await run_in_threadpool(
-            self._send_sync_email,
-            email,
-            "Копия обращения: Портфолио разработчика",
-            user_html
-        )
+        # 4. Безопасно отправляем в пул задач (ошибки сети Render не сломают запрос)
+        try:
+            await run_in_threadpool(
+                self._send_sync_email,
+                settings.EMAIL_TO_OWNER,
+                "New Portfolio Contact Form Submission",
+                owner_html
+            )
+        except Exception as e:
+            logger.error(f"Critical error during owner email thread execution: {str(e)}")
+
+        try:
+            await run_in_threadpool(
+                self._send_sync_email,
+                email,
+                "Копия обращения: Портфолио разработчика",
+                user_html
+            )
+        except Exception as e:
+            logger.error(f"Critical error during user email thread execution: {str(e)}")
