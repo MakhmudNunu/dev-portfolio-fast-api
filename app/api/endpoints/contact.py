@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -13,10 +13,13 @@ contact_service = ContactService()
 @router.post("/", status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limiter)])
 async def submit_contact_form(
     payload: ContactCreate,
-    db: Session = Depends(get_db)
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
 ):
     try:
-        result = await contact_service.process_contact_form(db=db, payload=payload)
+        result = await contact_service.process_contact_form(
+            db=db, payload=payload, background_tasks=background_tasks
+        )
         
         return {
             "success": True,
@@ -24,7 +27,8 @@ async def submit_contact_form(
             "data": {
                 "id": result.id,
                 "name": result.name
-            }
+            },
+            "ai_reply": result.ai_reply
         }
     except Exception as e:
         raise HTTPException(

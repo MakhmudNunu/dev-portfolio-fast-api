@@ -1,10 +1,12 @@
-from typing import Optional
+from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str
+    PROJECT_NAME: str = "Developer Portfolio API"
     HOST: str = "127.0.0.1"
     PORT: int = 8000
+    
+    CORS_ORIGINS: str = "*"
     
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
@@ -18,5 +20,11 @@ class Settings(BaseSettings):
     AI_MODEL: str = "gpt-3.5-turbo"
     
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    @property
+    def cors_origin_list(self) -> List[str]:
+        if self.CORS_ORIGINS == "*":
+            return ["*"]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
     
 settings = Settings()
