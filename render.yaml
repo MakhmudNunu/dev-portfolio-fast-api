@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: portfolio-fastapi-backend
+    env: python
+    # Команда для сборки проекта (Poetry установит зависимости)
+    buildCommand: poetry install
+    # Команда для запуска (Важно: хост должен быть 0.0.0.0)
+    startCommand: poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
